@@ -30,7 +30,7 @@ import com.comphenix.undyingsun.packets.TimeInterceptor;
 import com.comphenix.undyingsun.packets.TimeInterceptor.TimeListener;
 
 public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
-	public static final String PERMISSION_EXCEMPT = "undyingsun.excempt";
+	public static final String PERMISSION_EXCEMPT = "undyingsun.exempt";
 	
 	/**
 	 * The number of ticks per second.

@@ -15,6 +15,6 @@ commands:
       usage: /<command> [player]
       
 permissions:
-  undyingsun.excempt:
+  undyingsun.exempt:
     description: Can see the true server time, which is an eternal night by default.
     default: false
