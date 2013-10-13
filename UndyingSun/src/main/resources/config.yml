@@ -1,0 +1,6 @@
+client:
+  time: day
+  speed: 0
+server:
+  time: night
+  speed: 0

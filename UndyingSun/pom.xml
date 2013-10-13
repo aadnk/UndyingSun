@@ -1,0 +1,54 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.comphenix.undyingsun</groupId>
+  <artifactId>UndyingSun</artifactId>
+  <version>1.0.0</version>
+  <name>UndyingSun</name>
+  <description>Monsters can live and spawn in the everlasting ungodly sun light.</description>
+  
+  <repositories>
+    <repository>
+      <id>bukkit-rep</id>
+      <url>http://repo.bukkit.org/content/groups/public</url>
+    </repository>
+    <repository>
+      <id>comphenix-rep</id>
+      <name>Comphenix Maven Releases</name>
+      <url>http://repo.comphenix.net/content/groups/public</url>
+    </repository>
+  </repositories>
+  
+  <build>
+    <sourceDirectory>src/main/java</sourceDirectory>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+    </resources>
+    
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.0</version>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  
+  <dependencies>
+  	<dependency>
+    	<groupId>com.comphenix.protocol</groupId>
+    	<artifactId>ProtocolLib</artifactId>
+    	<version>2.7.0</version>
+  	</dependency> 
+  	<dependency>
+  		<groupId>org.bukkit</groupId>
+  		<artifactId>craftbukkit</artifactId>
+  		<version>1.6.2-R0.1-SNAPSHOT</version>
+  		<scope>provided</scope>
+  	</dependency>
+  </dependencies>
+</project>

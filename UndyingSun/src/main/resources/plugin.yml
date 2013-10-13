@@ -1,0 +1,20 @@
+name: UndyingSun
+version: 1.0.0
+description: Monsters can live and spawn in the everlasting ungodly sun light.
+author: Comphenix
+website: http://www.comphenix.net/UndyingSun
+
+softdepend: [ProtocolLib]
+
+main: com.comphenix.undyingsun.UndyingSunPlugin
+database: false
+
+commands:
+   undying:
+      description: Root command for the UndyingSun plugin.
+      usage: /<command> [player]
+      
+permissions:
+  undyingsun.excempt:
+    description: Can see the true server time, which is an eternal night by default.
+    default: false
