@@ -4,11 +4,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
-import org.bukkit.craftbukkit.libs.joptsimple.internal.Strings;
 
 import com.comphenix.undyingsun.CommandTimeParser.TimeOfDay;
 import com.google.common.base.Functions;
@@ -84,7 +84,7 @@ public class CommandUndying implements TabExecutor {
 			} else {
 				// Print every valid sub command
 				sender.sendMessage(ChatColor.GOLD + "Possible sub-commands: " + 
-					Strings.join(onTabComplete(sender, command, label, args), ", "));
+					StringUtils.join(onTabComplete(sender, command, label, args), ", "));
 			}
 			return true;
 		}
