@@ -31,7 +31,7 @@ import com.comphenix.undyingsun.temporal.Clock;
 import com.comphenix.undyingsun.temporal.TimeOfDay;
 
 public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
-	public static final String PERMISSION_EXCEMPT = "undyingsun.exempt";
+	public static final String PERMISSION_EXEMPT = "undyingsun.exempt";
 	
 	/**
 	 * The number of ticks per second.
@@ -106,7 +106,7 @@ public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 	@Override
 	public long onTimeSending(Player reciever, long totalTime, long relativeTime) {
 		// Only if ProtocolLib is present
-		if (!reciever.hasPermission(PERMISSION_EXCEMPT)) {
+		if (!reciever.hasPermission(PERMISSION_EXEMPT)) {
 			// Change the perceived time
 			if (config.getClientTime() != null) {
 				Clock clock = config.getClientClock();

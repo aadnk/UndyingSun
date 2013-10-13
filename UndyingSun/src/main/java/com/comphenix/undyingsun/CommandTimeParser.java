@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableSet;
  * Represents a parser for reading the input time in ticks.
  * @author Kristian
  */
-class CommandTimeParser {
+class CommandTimeParser {	
 	/**
 	 * Represents non-fixed time of days.
 	 */

@@ -37,6 +37,9 @@ import com.google.common.collect.Lists;
  * @author Kristian
  */
 class CommandUndying implements TabExecutor {
+	public static final String PERMISSION_WRITE_CONF = "undyingsun.config.write";
+	public static final String PERMISSION_READ_CONF = "undyingsun.config.read";
+	
 	public static final String NAME = "undying";
 	
 	// The configuration
@@ -144,11 +147,21 @@ class CommandUndying implements TabExecutor {
 		boolean server = command == SubCommand.SERVER_TIME;
 		
 		if (args.size() == 0) {
-			sender.sendMessage("Fixed time: " + TimeOfDay.toTimeString(
+			// Check permission
+			if (!sender.hasPermission(PERMISSION_READ_CONF)) {
+				sender.sendMessage(ChatColor.RED + "Insufficient permission.");
+			} else {
+				sender.sendMessage("Fixed time: " + TimeOfDay.toTimeString(
 					server ? config.getServerTime() : config.getClientTime() 
-			));
+				));
+			}
 			
 		} else if (args.size() == 1) {
+			if (!sender.hasPermission(PERMISSION_WRITE_CONF)) {
+				sender.sendMessage(ChatColor.RED + "Insufficient permission.");
+				return;
+			}
+			
 			TimeOfDay time = CommandTimeParser.parse(args.get(0));
 			
 			// Update configuration
@@ -177,11 +190,20 @@ class CommandUndying implements TabExecutor {
 		boolean server = command == SubCommand.SERVER_SPEED;
 		
 		if (args.size() == 0) {
-			sender.sendMessage("Current speed: " + 
-				(server ? config.getServerSpeed() : config.getClientSpeed()) 
-			);
+			if (!sender.hasPermission(PERMISSION_READ_CONF)) {
+				sender.sendMessage(ChatColor.RED + "Insufficient permission.");
+			} else {
+				sender.sendMessage("Current speed: " + 
+					(server ? config.getServerSpeed() : config.getClientSpeed()) 
+				);
+			}
 			
 		} else if (args.size() == 1) {
+			if (!sender.hasPermission(PERMISSION_WRITE_CONF)) {
+				sender.sendMessage(ChatColor.RED + "Insufficient permission.");
+				return;
+			}
+			
 			try {
 				double speed = Double.parseDouble(args.get(0));
 				
@@ -206,6 +228,11 @@ class CommandUndying implements TabExecutor {
 	
 	@Override
 	public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+		// Don't display tab complete for players without the permission
+		if (!sender.hasPermission(PERMISSION_READ_CONF)) {
+			return null;
+		}
+		
 		// Only respond to the expected command
 		if (NAME.equals(command.getName()) && args.length > 0) {
 			String text = args[0];

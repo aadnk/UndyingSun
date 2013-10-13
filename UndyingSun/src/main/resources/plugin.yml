@@ -12,9 +12,21 @@ database: false
 commands:
    undying:
       description: Root command for the UndyingSun plugin.
+      permission: undyingsun.config.read
       usage: /<command> [player]
       
 permissions:
+  undyingsun.config.*:
+    description: Gives access to everything.
+    children:
+      - undyingsun.config.read
+      - undyingsun.config.write
+  undyingsun.config.read:
+    description: Able read the configuration from commands.
+    default: op 
+  undyingsun.config.write:
+    description: Able to edit the configuration from commands.
+    default: op 
   undyingsun.exempt:
     description: Can see the true server time, which is an eternal night by default.
     default: false
