@@ -30,8 +30,21 @@ public class Clock {
 	 */
 	public static final int TICKS_PER_DAY = 24000;
 	
+	/**
+	 * Represents the default clock.
+	 */
+	private static final Clock DEFAULT_CLOCK = new Clock(new TimeOfDay(0, "default"), 1);
+	
 	private final TimeOfDay origin;
 	private final double tickRate;
+	
+	/**
+	 * Retrieve the default clock in Minecraft.
+	 * @return The default clock.
+	 */
+	public static Clock defaultClock() {
+		return DEFAULT_CLOCK;
+	}
 	
 	/**
 	 * Construct a new Minecraft clock.
@@ -44,6 +57,14 @@ public class Clock {
 	}
 	
 	/**
+	 * Determine whether or not the clock is ticking.
+	 * @return TRUE if it is, FALSE otherwise.
+	 */
+	public boolean isRunning() {
+		return tickRate != 0;
+	}
+	
+	/**
 	 * Retrieve the current time after the given number of elapsed ticks.
 	 * <p>
 	 * Use {@link World#getFullTime()} to get a world's total elapsed ticks.
@@ -51,9 +72,11 @@ public class Clock {
 	 * @return The current time.
 	 */
 	public int get(long elapsedTicks) {
-		if (tickRate != 0)
-			return (int) (origin.getGameTick() + (elapsedTicks % TICKS_PER_DAY) * tickRate) % TICKS_PER_DAY;
-		else
+		if (isRunning()) {
+			int phase = (int) ((elapsedTicks % TICKS_PER_DAY) * tickRate);
+			return (origin.getGameTick() + phase) % TICKS_PER_DAY;
+		} else {
 			return origin.getGameTick();
+		}
 	}
 }

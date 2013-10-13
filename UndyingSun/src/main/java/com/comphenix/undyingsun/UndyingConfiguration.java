@@ -41,6 +41,9 @@ class UndyingConfiguration {
 	private double serverSpeed;
 	private double clientSpeed;
 	
+	private Clock serverClock;
+	private Clock clientClock;
+	
 	public UndyingConfiguration(Plugin plugin) {
 		this.plugin = plugin;
 		reloadConfig();
@@ -64,10 +67,10 @@ class UndyingConfiguration {
 			plugin.getLogger().info("Created default configuration.");
 		}
 		
-		this.serverTime = loadTime(config, CONFIG_SERVER_TIME);
-		this.clientTime = loadTime(config, CONFIG_CLIENT_TIME);
-		this.serverSpeed = config.getDouble(CONFIG_SERVER_SPEED, 0);
-		this.clientSpeed = config.getDouble(CONFIG_CLIENT_SPEED, 0);
+		setServerTime(loadTime(config, CONFIG_SERVER_TIME));
+		setClientTime(loadTime(config, CONFIG_CLIENT_TIME));
+		setServerSpeed(config.getDouble(CONFIG_SERVER_SPEED, 0));
+		setClientSpeed(config.getDouble(CONFIG_CLIENT_SPEED, 0));
 	}
 	
 	/**
@@ -75,8 +78,8 @@ class UndyingConfiguration {
 	 */
 	public void saveConfig() {
 		FileConfiguration config = plugin.getConfig();
-		config.set(CONFIG_SERVER_TIME, serverTime != null ? serverTime.getAlias() : null);
-		config.set(CONFIG_CLIENT_TIME, clientTime != null ? clientTime.getAlias() : null);
+		config.set(CONFIG_SERVER_TIME, serverTime != null ? serverTime.getAlias() : "none");
+		config.set(CONFIG_CLIENT_TIME, clientTime != null ? clientTime.getAlias() : "none");
 		config.set(CONFIG_SERVER_SPEED, serverSpeed);
 		config.set(CONFIG_CLIENT_SPEED, clientSpeed);
 		plugin.saveConfig();
@@ -89,6 +92,14 @@ class UndyingConfiguration {
 	public TimeOfDay getServerTime() {
 		return serverTime;
 	}
+		
+	/**
+	 * Retrieve the server time tick rate.
+	 * @return The tick rate of the server.
+	 */
+	public double getServerSpeed() {
+		return serverSpeed;
+	}
 	
 	/**
 	 * Retrieve the fixed client time.
@@ -96,14 +107,6 @@ class UndyingConfiguration {
 	 */
 	public TimeOfDay getClientTime() {
 		return clientTime;
-	}
-	
-	/**
-	 * Retrieve the server time tick rate.
-	 * @return The tick rate of the server.
-	 */
-	public double getServerSpeed() {
-		return serverSpeed;
 	}
 	
 	/**
@@ -115,45 +118,12 @@ class UndyingConfiguration {
 	}
 	
 	/**
-	 * Set the current fixed client time.
-	 * @param clientTime - the new fixed client time.
-	 */
-	public void setClientTime(TimeOfDay clientTime) {
-		this.clientTime = clientTime;
-	}
-	
-	/**
 	 * Set the current fixed server time.
 	 * @param serverTime - the new fixed server time.
 	 */
 	public void setServerTime(TimeOfDay serverTime) {
 		this.serverTime = serverTime;
-	}
-	
-	/**
-	 * Set the client time tick rate.
-	 * <p>
-	 * Use a rate of zero to lock down the time.
-	 * @param clientSpeed - the new client tick rate.
-	 */
-	public void setClientSpeed(double clientSpeed) {
-		this.clientSpeed = clientSpeed;
-	}
-	
-	/**
-	 * Retrieve the client clock used to calculate its current time.
-	 * @return Client clock.
-	 */
-	public Clock getClientClock() {
-		return new Clock(getClientTime(), getClientSpeed());
-	}
-	
-	/**
-	 * Retrieve the server clock used to calculate its current time.
-	 * @return Server clock.
-	 */
-	public Clock getServerClock() {
-		return new Clock(getServerTime(), getServerSpeed());
+		updateServerClock();
 	}
 	
 	/**
@@ -164,8 +134,63 @@ class UndyingConfiguration {
 	 */
 	public void setServerSpeed(double serverSpeed) {
 		this.serverSpeed = serverSpeed;
+		updateServerClock();
 	}
 	
+	/**
+	 * Set the current fixed client time.
+	 * @param clientTime - the new fixed client time.
+	 */
+	public void setClientTime(TimeOfDay clientTime) {
+		this.clientTime = clientTime;
+		updateClientClock();
+	}
+		
+	/**
+	 * Set the client time tick rate.
+	 * <p>
+	 * Use a rate of zero to lock down the time.
+	 * @param clientSpeed - the new client tick rate.
+	 */
+	public void setClientSpeed(double clientSpeed) {
+		this.clientSpeed = clientSpeed;
+		updateClientClock();
+	}
+	
+	/**
+	 * Recreate the client clock.
+	 */
+	private void updateClientClock() {
+		clientClock = getClientTime() != null ? 
+			new Clock(getClientTime(), getClientSpeed()) : 
+			Clock.defaultClock();
+	}
+	
+	/**
+	 * Recreate the server clock.
+	 */
+	private void updateServerClock() {
+		serverClock = getServerTime() != null ? 
+			new Clock(getServerTime(), getServerSpeed()) :
+			Clock.defaultClock();
+	}
+	
+	/**
+	 * Retrieve the client clock used to calculate its current time.
+	 * @return Client clock.
+	 */
+	public Clock getClientClock() {
+		return clientClock;
+	}
+	
+	/**
+	 * Retrieve the server clock used to calculate its current time.
+	 * @return Server clock.
+	 */
+	public Clock getServerClock() {
+		return serverClock;
+	}
+		
 	/**
 	 * Retrieve a reference to the configuration file.
 	 * @return Configuration file on disk.

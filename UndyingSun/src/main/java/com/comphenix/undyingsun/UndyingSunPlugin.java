@@ -27,6 +27,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import com.comphenix.undyingsun.packets.TimeInterceptor;
 import com.comphenix.undyingsun.packets.TimeInterceptor.TimeListener;
+import com.comphenix.undyingsun.temporal.Clock;
 import com.comphenix.undyingsun.temporal.TimeOfDay;
 
 public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
@@ -60,10 +61,18 @@ public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 		// Tell the console
 		getLogger().info( "Server time: " + TimeOfDay.toTimeString(config.getServerTime()) );
 		getLogger().info( "Client time: " + TimeOfDay.toTimeString(config.getClientTime()) );
+				
+		try {
+			// Set up client-side clock
+			registerPacketHandler();
+		} catch (Exception e) {
+			// Fail gracefully - we can still support the server-side clock
+			getLogger().warning("Cannot register packet handler. The Client side clock will work.");
+			e.printStackTrace();
+		}
 		
-		// Set up interception
-		registerPacketHandler();
-		registerTimeLock(UPDATE_DELAY);
+		// Setup server-side clock
+		registerTimeLock(interceptor != null ? UPDATE_DELAY : 1);
 	}
 
 	private void registerPacketHandler() {
@@ -100,7 +109,10 @@ public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 		if (!reciever.hasPermission(PERMISSION_EXCEMPT)) {
 			// Change the perceived time
 			if (config.getClientTime() != null) {
-				return config.getClientClock().get(totalTime);
+				Clock clock = config.getClientClock();
+				
+				// The gamerule doDaylightCycle is encoded in the sign bit
+				return clock.get(totalTime) * (clock.isRunning() ? 1 : -1);
 			}
 		}
 		return relativeTime;
