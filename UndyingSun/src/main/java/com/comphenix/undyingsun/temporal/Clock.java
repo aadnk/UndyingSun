@@ -15,24 +15,23 @@
  *  02111-1307 USA
  */
 
-package com.comphenix.undyingsun;
+package com.comphenix.undyingsun.temporal;
 
 import org.bukkit.World;
 
-import com.comphenix.undyingsun.CommandTimeParser.TimeOfDay;
 
 /**
  * Represents a Minecraft clock.
  * @author Kristian
  */
-class Clock {
+public class Clock {
 	/**
 	 * The number of ticks in a single Minecraft day.
 	 */
 	public static final int TICKS_PER_DAY = 24000;
 	
-	private TimeOfDay origin;
-	private double tickRate;
+	private final TimeOfDay origin;
+	private final double tickRate;
 	
 	/**
 	 * Construct a new Minecraft clock.
@@ -45,7 +44,7 @@ class Clock {
 	}
 	
 	/**
-	 * Retrieve the current time given the number of elapsed tick.
+	 * Retrieve the current time after the given number of elapsed ticks.
 	 * <p>
 	 * Use {@link World#getFullTime()} to get a world's total elapsed ticks.
 	 * @param elapsedTicks - number of elapsed ticks.

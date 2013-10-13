@@ -27,7 +27,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 
-import com.comphenix.undyingsun.CommandTimeParser.TimeOfDay;
+import com.comphenix.undyingsun.temporal.TimeOfDay;
 import com.google.common.base.Functions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -36,7 +36,7 @@ import com.google.common.collect.Lists;
  * Represenst the undying sun command.
  * @author Kristian
  */
-public class CommandUndying implements TabExecutor {
+class CommandUndying implements TabExecutor {
 	public static final String NAME = "undying";
 	
 	// The configuration

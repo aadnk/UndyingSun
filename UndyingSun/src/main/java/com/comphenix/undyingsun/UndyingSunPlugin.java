@@ -25,9 +25,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
-import com.comphenix.undyingsun.CommandTimeParser.TimeOfDay;
 import com.comphenix.undyingsun.packets.TimeInterceptor;
 import com.comphenix.undyingsun.packets.TimeInterceptor.TimeListener;
+import com.comphenix.undyingsun.temporal.TimeOfDay;
 
 public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 	public static final String PERMISSION_EXCEMPT = "undyingsun.exempt";

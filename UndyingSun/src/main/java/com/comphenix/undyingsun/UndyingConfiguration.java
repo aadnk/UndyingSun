@@ -23,9 +23,11 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
 
-import com.comphenix.undyingsun.CommandTimeParser.TimeOfDay;
+import com.comphenix.undyingsun.temporal.Clock;
+import com.comphenix.undyingsun.temporal.TimeOfDay;
 
-public class UndyingConfiguration {
+
+class UndyingConfiguration {
 	private static final String CONFIG_CLIENT_TIME = "client.time";
 	private static final String CONFIG_SERVER_TIME = "server.time";
 	private static final String CONFIG_CLIENT_SPEED = "client.speed";
