@@ -33,7 +33,7 @@ public class Clock {
 	/**
 	 * Represents the default clock.
 	 */
-	private static final Clock DEFAULT_CLOCK = new Clock(new TimeOfDay(0, "default"), 1);
+	private static final Clock DEFAULT_CLOCK = new Clock(TimeOfDay.MORNING, 1);
 	
 	private final TimeOfDay origin;
 	private final double tickRate;
