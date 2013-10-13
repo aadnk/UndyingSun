@@ -24,35 +24,44 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
 
 import com.comphenix.undyingsun.temporal.Clock;
+import com.comphenix.undyingsun.temporal.DaylightPreset;
 import com.comphenix.undyingsun.temporal.TimeOfDay;
 
 
 class UndyingConfiguration {
-	private static final String CONFIG_CLIENT_TIME = "client.time";
-	private static final String CONFIG_SERVER_TIME = "server.time";
-	private static final String CONFIG_CLIENT_SPEED = "client.speed";
-	private static final String CONFIG_SERVER_SPEED = "server.speed";
+	private static final String CONFIG_CLIENT_CLOCK = "client";
+	private static final String CONFIG_SERVER_CLOCK = "server";
+	
+	// Loading clock
+	private static final String CONFIG_CLOCK_SPEED = "speed";
+	private static final String CONFIG_CLOCK_TIME = "time";
+	private static final String CONFIG_CLOCK_DAYLIGHT = "daylight";
+	
+	// Loading preset
+	private static final String CONFIG_PRESET_DAY = "day";
+	private static final String CONFIG_PRESET_EVENING = "evening";
+	private static final String CONFIG_PRESET_NIGHT = "night";
+	private static final String CONFIG_PRESET_DAWN = "dawn";
 	
 	private Plugin plugin;
 
 	// The configurations
-	private TimeOfDay serverTime;
-	private TimeOfDay clientTime;
-	private double serverSpeed;
-	private double clientSpeed;
-	
 	private Clock serverClock;
 	private Clock clientClock;
 	
 	public UndyingConfiguration(Plugin plugin) {
 		this.plugin = plugin;
-		reloadConfig();
+		loadConfig(false);
 	}
 
 	/**
 	 * Reload configuration file.
 	 */
 	public void reloadConfig() {
+		loadConfig(true);
+	}
+	
+	public void loadConfig(boolean forceReload) {
 		FileConfiguration config = plugin.getConfig();
 		
 		// Automatically copy defaults
@@ -60,17 +69,17 @@ class UndyingConfiguration {
 			if (config != null)
 				config.options().copyDefaults(true);
 			plugin.saveDefaultConfig();
-			plugin.reloadConfig();
-			config = plugin.getConfig();
-			
 			// Inform the user
 			plugin.getLogger().info("Created default configuration.");
 		}
+		// Reload the configuration
+		if (forceReload) {
+			plugin.reloadConfig();
+			config = plugin.getConfig();
+		}
 		
-		setServerTime(loadTime(config, CONFIG_SERVER_TIME));
-		setClientTime(loadTime(config, CONFIG_CLIENT_TIME));
-		setServerSpeed(config.getDouble(CONFIG_SERVER_SPEED, 0));
-		setClientSpeed(config.getDouble(CONFIG_CLIENT_SPEED, 0));
+		serverClock = loadClock(config.getConfigurationSection(CONFIG_SERVER_CLOCK));
+		clientClock = loadClock(config.getConfigurationSection(CONFIG_CLIENT_CLOCK));
 	}
 	
 	/**
@@ -78,10 +87,8 @@ class UndyingConfiguration {
 	 */
 	public void saveConfig() {
 		FileConfiguration config = plugin.getConfig();
-		config.set(CONFIG_SERVER_TIME, serverTime != null ? serverTime.getAlias() : "none");
-		config.set(CONFIG_CLIENT_TIME, clientTime != null ? clientTime.getAlias() : "none");
-		config.set(CONFIG_SERVER_SPEED, serverSpeed);
-		config.set(CONFIG_CLIENT_SPEED, clientSpeed);
+		saveClock(config.createSection(CONFIG_CLIENT_CLOCK), clientClock);
+		saveClock(config.createSection(CONFIG_SERVER_CLOCK), serverClock);
 		plugin.saveConfig();
 	}
 	
@@ -90,7 +97,7 @@ class UndyingConfiguration {
 	 * @return The fixed server time, or NULL if not fixed.
 	 */
 	public TimeOfDay getServerTime() {
-		return serverTime;
+		return serverClock.getOrigin();
 	}
 		
 	/**
@@ -98,7 +105,7 @@ class UndyingConfiguration {
 	 * @return The tick rate of the server.
 	 */
 	public double getServerSpeed() {
-		return serverSpeed;
+		return serverClock.getTickRate();
 	}
 	
 	/**
@@ -106,7 +113,7 @@ class UndyingConfiguration {
 	 * @return The fixed client time, or NULL if not fixed.
 	 */
 	public TimeOfDay getClientTime() {
-		return clientTime;
+		return clientClock.getOrigin();
 	}
 	
 	/**
@@ -114,7 +121,7 @@ class UndyingConfiguration {
 	 * @return The tick rate of the client.
 	 */
 	public double getClientSpeed() {
-		return clientSpeed;
+		return clientClock.getTickRate();
 	}
 	
 	/**
@@ -122,8 +129,7 @@ class UndyingConfiguration {
 	 * @param serverTime - the new fixed server time.
 	 */
 	public void setServerTime(TimeOfDay serverTime) {
-		this.serverTime = serverTime;
-		updateServerClock();
+		this.serverClock = serverClock.withOrigin(serverTime);
 	}
 	
 	/**
@@ -133,8 +139,7 @@ class UndyingConfiguration {
 	 * @param serverSpeed - the new server tick rate.
 	 */
 	public void setServerSpeed(double serverSpeed) {
-		this.serverSpeed = serverSpeed;
-		updateServerClock();
+		this.serverClock = serverClock.withSpeed(serverSpeed);
 	}
 	
 	/**
@@ -142,8 +147,7 @@ class UndyingConfiguration {
 	 * @param clientTime - the new fixed client time.
 	 */
 	public void setClientTime(TimeOfDay clientTime) {
-		this.clientTime = clientTime;
-		updateClientClock();
+		this.clientClock = clientClock.withOrigin(clientTime);
 	}
 		
 	/**
@@ -153,26 +157,7 @@ class UndyingConfiguration {
 	 * @param clientSpeed - the new client tick rate.
 	 */
 	public void setClientSpeed(double clientSpeed) {
-		this.clientSpeed = clientSpeed;
-		updateClientClock();
-	}
-	
-	/**
-	 * Recreate the client clock.
-	 */
-	private void updateClientClock() {
-		clientClock = getClientTime() != null ? 
-			new Clock(getClientTime(), getClientSpeed()) : 
-			Clock.defaultClock();
-	}
-	
-	/**
-	 * Recreate the server clock.
-	 */
-	private void updateServerClock() {
-		serverClock = getServerTime() != null ? 
-			new Clock(getServerTime(), getServerSpeed()) :
-			Clock.defaultClock();
+		this.clientClock = clientClock.withSpeed(clientSpeed);
 	}
 	
 	/**
@@ -200,12 +185,73 @@ class UndyingConfiguration {
 	}
 	
 	/**
+	 * Save a clock at a given destination section,
+	 * @param destination - the destination section.
+	 * @param clock - the clock to save.
+	 */
+	private void saveClock(ConfigurationSection destination, Clock clock) {
+		savePreset(
+			destination.createSection(CONFIG_CLOCK_DAYLIGHT), clock.getPreset());
+		destination.set(CONFIG_CLOCK_TIME, clock.getOrigin());
+		destination.set(CONFIG_CLOCK_SPEED, clock.getTickRate());
+	}
+	
+	/**
+	 * Load a clock from a given section.
+	 * @param section - the source section.
+	 * @return The loaded clock.
+	 */
+	private Clock loadClock(ConfigurationSection section) {
+		if (section == null)
+			return Clock.defaultClock();
+		
+		// Load the clock attributes
+		DaylightPreset preset = loadPreset(section.getConfigurationSection(CONFIG_CLOCK_DAYLIGHT));
+		TimeOfDay time = loadTime(section, CONFIG_CLOCK_TIME, TimeOfDay.MORNING);
+		double speed = section.getDouble(CONFIG_CLOCK_SPEED, 1.0);
+		
+		return new Clock(preset, time, speed);
+	}
+	
+	/**
+	 * Load a daylight preset from a section.
+	 * <p>
+	 * Returns a default preset if the section is empty.
+	 * @param section - the section to load from.
+	 * @return The daylight preset.
+	 */
+	private DaylightPreset loadPreset(ConfigurationSection section) {
+		if (section != null) {
+			return DaylightPreset.newPreset(
+				section.getDouble(CONFIG_PRESET_DAY, 0),
+				section.getDouble(CONFIG_PRESET_EVENING, 0),
+				section.getDouble(CONFIG_PRESET_NIGHT, 0),
+				section.getDouble(CONFIG_PRESET_DAWN, 0)
+			);
+		} else {
+			return DaylightPreset.defaultPreset();
+		}
+	}
+	
+	/**
+	 * Save the daylight preset in the given section.
+	 * @param section - the destination section.
+	 * @param preset - the preset to save.
+	 */
+	private void savePreset(ConfigurationSection section, DaylightPreset preset) {
+		section.set(CONFIG_PRESET_DAY, preset.getDay());
+		section.set(CONFIG_PRESET_EVENING, preset.getEvening());
+		section.set(CONFIG_PRESET_NIGHT, preset.getNight());
+		section.set(CONFIG_PRESET_DAWN, preset.getDawn());
+	}
+	
+	/**
 	 * Load the time from a given configuration section.
 	 * @param parent - the root node.
 	 * @param key - the node name.
 	 * @return The time of day, or NULL if not present.
 	 */
-	private TimeOfDay loadTime(ConfigurationSection parent, String key) {
+	private TimeOfDay loadTime(ConfigurationSection parent, String key, TimeOfDay defaultValue) {
 		Object value = parent.get(key);
 		
 		try {

@@ -1,6 +1,19 @@
+# The time each client will percieve
 client:
   time: day
   speed: 0
+  daylight:
+    day: 6
+    evening: 1
+    night: 4
+    dawn: 1
+
+# The actual game time on the server side, affecting mob behavior and spawn
 server:
   time: night
-  speed: 0
+  speed: 0  
+  daylight:
+    day: 6
+    evening: 1
+    night: 4
+    dawn: 1

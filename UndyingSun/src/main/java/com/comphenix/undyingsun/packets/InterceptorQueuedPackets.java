@@ -40,6 +40,9 @@ import com.google.common.collect.ForwardingList;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Primitives;
 
+// You can do most of this already with setPlayerTime(), but you end up with a slightly annoying
+// "wobbling" of the sun/moon as you cannot stop the passage of time on the client without 
+// changing the gameRule doDayNightCycle. This setting is global, so we can't use it.
 class InterceptorQueuedPackets extends TimeInterceptor implements Listener {
 	/**
 	 * Represents a field set operation.

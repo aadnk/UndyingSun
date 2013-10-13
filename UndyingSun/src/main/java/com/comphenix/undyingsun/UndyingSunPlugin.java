@@ -92,7 +92,7 @@ public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 		timeLock = Bukkit.getScheduler().runTaskTimer(this, new Runnable() {
 			@Override
 			public void run() {
-				if (config.getServerTime() != null) {
+				if (!config.getServerClock().isDefault()) {
 					// Update all loaded worlds
 					for (World world : getServer().getWorlds()) {
 						int time = config.getServerClock().get(world.getFullTime());
@@ -108,7 +108,7 @@ public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 		// Only if ProtocolLib is present
 		if (!reciever.hasPermission(PERMISSION_EXEMPT)) {
 			// Change the perceived time
-			if (config.getClientTime() != null) {
+			if (!config.getClientClock().isDefault()) {
 				Clock clock = config.getClientClock();
 				
 				// The gamerule doDaylightCycle is encoded in the sign bit

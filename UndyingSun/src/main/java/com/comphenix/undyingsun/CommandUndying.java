@@ -123,6 +123,7 @@ class CommandUndying implements TabExecutor {
 		switch (subCommand) {
 			case RELOAD:
 				config.reloadConfig();
+				sender.sendMessage(ChatColor.GOLD + "Reloading configuration.");
 				break;
 			case CLIENT_TIME:
 			case SERVER_TIME:

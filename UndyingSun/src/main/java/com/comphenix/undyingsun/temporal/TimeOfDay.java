@@ -9,21 +9,22 @@ import com.google.common.collect.Lists;
  * Different time of days in Minecraft.
  * @author Kristian
  */
-public class TimeOfDay {
-	/**
-	 * Every default time of day in Minecraft.
-	 */
-	public static final ImmutableList<TimeOfDay> VALUES = createDefault();
-		
+public class TimeOfDay {		
 	public static final TimeOfDay DAWN = 		new TimeOfDay(22000, "dawn");
 	public static final TimeOfDay SUNRISE = 	new TimeOfDay(22580, "sunrise");
 	public static final TimeOfDay MORNING = 	new TimeOfDay(0, "morning");
 	public static final TimeOfDay FORENOON = 	new TimeOfDay(3000, "forenoon");
 	public static final TimeOfDay NOON = 		new TimeOfDay(6000, "noon");
 	public static final TimeOfDay AFTERNOON =	new TimeOfDay(9000, "afternoon");
+	public static final TimeOfDay EVENING = 	new TimeOfDay(12000, "evening");
 	public static final TimeOfDay SUNSET = 		new TimeOfDay(13400, "sunset");
 	public static final TimeOfDay DUSK = 		new TimeOfDay(14000, "dusk");
 	public static final TimeOfDay MIDNIGHT = 	new TimeOfDay(18000, "midnight");
+	
+	/**
+	 * Every default time of day in Minecraft.
+	 */
+	public static final ImmutableList<TimeOfDay> VALUES = createDefault();
 	
 	private final int gameTick;
 	private final String alias;
@@ -90,6 +91,7 @@ public class TimeOfDay {
 		defineTime(times, FORENOON);
 		defineTime(times, NOON, "midday", "day");
 		defineTime(times, AFTERNOON);
+		defineTime(times, EVENING);
 		defineTime(times, SUNSET);
 		defineTime(times, DUSK);
 		defineTime(times, MIDNIGHT, "night");

@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.comphenix.undyingsun</groupId>
   <artifactId>UndyingSun</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1-SNAPSHOT</version>
   <name>UndyingSun</name>
   <description>Monsters can live and spawn in the everlasting ungodly sun light.</description>
   
