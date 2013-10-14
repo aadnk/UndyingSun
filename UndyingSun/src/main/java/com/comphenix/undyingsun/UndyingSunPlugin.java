@@ -23,10 +23,10 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 import com.comphenix.undyingsun.packets.TimeInterceptor;
 import com.comphenix.undyingsun.packets.TimeInterceptor.TimeListener;
+import com.comphenix.undyingsun.packets.TimeSetter;
 import com.comphenix.undyingsun.temporal.Clock;
 import com.comphenix.undyingsun.temporal.TimeOfDay;
 
@@ -45,7 +45,12 @@ public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 	
 	// The configuration
 	private UndyingConfiguration config;
-	private BukkitTask timeLock;
+	
+	// Track the elapsed time per world
+	private WorldTimer worldTimer;
+	
+	// Non-positive delay permanently disables the server clock
+	private int serverClockDelay = TICKS_PER_SECOND;
 	
 	// Packet interception
 	private TimeInterceptor interceptor;
@@ -54,6 +59,7 @@ public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 	public void onEnable() {
 		// Prepare configuration
 		config = new UndyingConfiguration(this);
+		worldTimer = new WorldTimer(this);
 		
 		// Setup command(s)
 		registerTabExecutor(CommandUndying.NAME, new CommandUndying(config));
@@ -62,45 +68,82 @@ public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 		getLogger().info( "Server time: " + TimeOfDay.toTimeString(config.getServerTime()) );
 		getLogger().info( "Client time: " + TimeOfDay.toTimeString(config.getClientTime()) );
 				
-		try {
-			// Set up client-side clock
-			registerPacketHandler();
-		} catch (Exception e) {
-			// Fail gracefully - we can still support the server-side clock
-			getLogger().warning("Cannot register packet handler. The Client side clock will work.");
-			e.printStackTrace();
-		}
+		// Setup client-side clock
+		registerPacketHandler();
 		
 		// Setup server-side clock
-		registerTimeLock(interceptor != null ? UPDATE_DELAY : 1);
+		onUpdateServerTime();
 	}
 
 	private void registerPacketHandler() {
-		// Choose the correct method
-		if (getServer().getPluginManager().getPlugin("ProtocolLib") != null) {
-			interceptor = TimeInterceptor.fromProtocolLib(this);
-			getLogger().info("ProtocolLib detected!");
-		} else {
-			interceptor = TimeInterceptor.fromQueuedPackets(this);
-			getLogger().info("Intercepting packets manually.");
+		try {
+			// Choose the correct method
+			if (getServer().getPluginManager().getPlugin("ProtocolLib") != null) {
+				interceptor = TimeInterceptor.fromProtocolLib(this);
+				getLogger().info("ProtocolLib detected!");
+			} else {
+				interceptor = TimeInterceptor.fromQueuedPackets(this);
+				getLogger().info("Intercepting packets manually.");
+			}
+			
+		} catch (Exception e) {
+			// Fail gracefully
+			getLogger().warning("Cannot register packet handler. Reverting to native Bukkit.");
+			e.printStackTrace();
+			
+			// This should work - hopefully
+			interceptor = new TimeSetter(this);
 		}
+		// Add this class as a listener
 		interceptor.addTimeListener(this);
 	}
 	
-	private void registerTimeLock(int updateDelay) {
-		// Run every second
-		timeLock = Bukkit.getScheduler().runTaskTimer(this, new Runnable() {
+	/**
+	 * Invoked when we need to update the server time.
+	 */
+	private void onUpdateServerTime() {
+		if (serverClockDelay <= 0)
+			return;
+		
+		// Update the time if needed
+		if (!config.getServerClock().isDefault()) {
+			// Update all loaded worlds
+			for (World world : getServer().getWorlds()) {
+				long fullTime = worldTimer.getWorldTime(world);
+				long time = config.getServerClock().get(fullTime);
+				world.setTime(time);
+			}
+		}
+		
+		// Update setter
+		if (interceptor instanceof TimeSetter) {
+			((TimeSetter) interceptor).update();
+		}
+		
+		// Speed or slow down delay
+		checkClockDelay();
+		
+		// Reschedule check
+		Bukkit.getScheduler().scheduleSyncDelayedTask(this, new Runnable() {
 			@Override
 			public void run() {
-				if (!config.getServerClock().isDefault()) {
-					// Update all loaded worlds
-					for (World world : getServer().getWorlds()) {
-						int time = config.getServerClock().get(world.getFullTime());
-						world.setTime(time);
-					}
-				}
+				onUpdateServerTime();
 			}
-		}, 0, updateDelay * TICKS_PER_SECOND);
+		}, serverClockDelay);
+	}
+	
+	private void checkClockDelay() {
+		if (serverClockDelay > 0) {
+			// See if we really need frequent updates
+			if (hasCustomRunning(config.getClientClock()) || hasCustomRunning(config.getServerClock()) ) 
+				serverClockDelay = 1;
+			else
+				serverClockDelay = TICKS_PER_SECOND;
+		}
+	}
+	
+	private boolean hasCustomRunning(Clock clock) {
+		return !clock.isDefault() && clock.isRunning();
 	}
 	
 	@Override
@@ -110,9 +153,10 @@ public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 			// Change the perceived time
 			if (!config.getClientClock().isDefault()) {
 				Clock clock = config.getClientClock();
+				long fullTime = worldTimer.getWorldTime(reciever.getWorld());
 				
 				// The gamerule doDaylightCycle is encoded in the sign bit
-				return clock.get(totalTime) * (clock.isRunning() ? 1 : -1);
+				return clock.get(fullTime) * (clock.isRunning() ? 1 : -1);
 			}
 		}
 		return relativeTime;
@@ -131,9 +175,12 @@ public class UndyingSunPlugin extends JavaPlugin implements TimeListener {
 			interceptor.close();
 			interceptor = null;
 		}
-		if (timeLock != null) {
-			timeLock.cancel();
-			timeLock = null;
+		if (worldTimer != null) {
+			worldTimer.close();
+			worldTimer = null;
 		}
+		
+		// Cancel server update
+		serverClockDelay = 0;
 	}
 }

@@ -66,6 +66,8 @@ public abstract class TimeInterceptor {
 	
 	/**
 	 * Invoke every listener with the given parameters.
+	 * <p>
+	 * This method is thread-safe.
 	 * @param reciever - the player reciever.
 	 * @param totalTime - the total time.
 	 * @param relativeTime - the relative time.
@@ -85,6 +87,13 @@ public abstract class TimeInterceptor {
 		}
 	}
 	
+	/**
+	 * Invoke every listener with the given parameters.
+	 * @param reciever - the recieving player.
+	 * @param totalTime - the total time of the world.
+	 * @param relativeTime - the relative time for this player.
+	 * @return The processed relative time.
+	 */
 	private long processListeners(Player reciever, final long totalTime, long relativeTime) {
 		// Process on each listener
 		for (TimeListener listener : timeListeners) {
