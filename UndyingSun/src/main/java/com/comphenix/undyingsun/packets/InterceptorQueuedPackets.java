@@ -35,7 +35,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 
 import com.google.common.base.Function;
-import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ForwardingList;
@@ -53,42 +52,48 @@ class InterceptorQueuedPackets extends TimeInterceptor implements Listener {
 	private static class FieldSetter {
 		private final Field field;
 		private final Object target;
-		private final Object newValue;
+		private final List<Object> applyValue;
 		
 		// The old value
-		private final WeakReference<Object> oldValue;
+		private final WeakReference<List<Object>> creationValue;
 		
-		public FieldSetter(Field field, Object target, Object value) throws IllegalAccessException {
-			this.field = field;
-			this.target = target;
-			this.newValue = value;
-			this.oldValue = new WeakReference<Object>(field.get(target));
+		public static FieldSetter from(Field field, Object target, List<Object> value) throws IllegalAccessException {
+			return new FieldSetter(field, target, value);
 		}
 		
-		/**
-		 * Determine if the current field value has changed since the FieldSetter was created.
-		 * @return TRUE if it has, FALSE otherwise.
-		 */
-		public boolean hasChanged() throws IllegalAccessException {
-			return Objects.equal(oldValue.get(), getCurrentValue());
+		private FieldSetter(Field field, Object target, List<Object> value) throws IllegalAccessException {
+			this.field = field;
+			this.target = target;
+			this.applyValue = value;
+			this.creationValue = new WeakReference<List<Object>>(getCurrentValue());
 		}
 		
 		/**
 		 * Retrieve the current value of the field.
 		 * @return The current value.
 		 */
-		public Object getCurrentValue() throws IllegalAccessException {
-			return field.get(target);
+		@SuppressWarnings("unchecked")
+		public List<Object> getCurrentValue() throws IllegalAccessException {
+			return (List<Object>) field.get(target);
+		}
+		
+		/**
+		 * Retrieve the value of the field as it appeared when the setter was created.
+		 * @return The creation value.
+		 */
+		public List<Object> getCreationValue() {
+			return creationValue.get();
 		}
 		
 		/**
 		 * Apply the field operation.
-		 * @throws IllegalAccessException 
-		 * @throws IllegalArgumentException 
+		 * @return A field setter that reverts this operation.
+		 * @throws IllegalArgumentException Cannot assign a value of this type.
 		 */
-		public void apply() throws IllegalArgumentException {
+		public FieldSetter apply() throws IllegalArgumentException {
 			try {
-				field.set(target, newValue);
+				field.set(target, applyValue);
+				return new FieldSetter(field, target, getCreationValue());
 			} catch (IllegalAccessException e) {
 				throw new RuntimeException("Unable to access field.", e);
 			}
@@ -176,13 +181,13 @@ class InterceptorQueuedPackets extends TimeInterceptor implements Listener {
 		List<Object> highPriorityQueue = (List<Object>) highPriorityQueueField.get(networkManager);
 		List<Object> lowPriorityQueue = (List<Object>) lowPriorityQueueField.get(networkManager);
 		
-		// Save old values
-		revertOperations.put(player, new FieldSetter(highPriorityQueueField, networkManager, highPriorityQueue));
-		revertOperations.put(player, new FieldSetter(lowPriorityQueueField, networkManager, lowPriorityQueue));
-		
 		// Proxy the lists
-		highPriorityQueueField.set(networkManager, new ProxyList(player, highPriorityQueue));
-		lowPriorityQueueField.set(networkManager, new ProxyList(player, lowPriorityQueue));
+		revertOperations.put(player, 
+			FieldSetter.from(highPriorityQueueField, networkManager, new ProxyList(player, highPriorityQueue)).apply()
+		);
+		revertOperations.put(player, 
+			FieldSetter.from(lowPriorityQueueField, networkManager, new ProxyList(player, lowPriorityQueue)).apply()
+		);
 	}
 	
 	private void uninjectPlayer(Player player) {
@@ -234,7 +239,7 @@ class InterceptorQueuedPackets extends TimeInterceptor implements Listener {
 					// Check every field
 					for (FieldSetter setter : revertOperations.get(player)) {
 						try {
-							if (setter.hasChanged()) {
+							if (setter.getCreationValue() != setter.getCurrentValue()) {
 								detectInterference(setter);
 								return;
 							}
