@@ -17,6 +17,7 @@
 
 package com.comphenix.undyingsun.packets;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -34,6 +35,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 
 import com.google.common.base.Function;
+import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ForwardingList;
@@ -51,12 +53,32 @@ class InterceptorQueuedPackets extends TimeInterceptor implements Listener {
 	private static class FieldSetter {
 		private final Field field;
 		private final Object target;
-		private final Object value;
+		private final Object newValue;
 		
-		public FieldSetter(Field field, Object target, Object value) {
+		// The old value
+		private final WeakReference<Object> oldValue;
+		
+		public FieldSetter(Field field, Object target, Object value) throws IllegalAccessException {
 			this.field = field;
 			this.target = target;
-			this.value = value;
+			this.newValue = value;
+			this.oldValue = new WeakReference<Object>(field.get(target));
+		}
+		
+		/**
+		 * Determine if the current field value has changed since the FieldSetter was created.
+		 * @return TRUE if it has, FALSE otherwise.
+		 */
+		public boolean hasChanged() throws IllegalAccessException {
+			return Objects.equal(oldValue.get(), getCurrentValue());
+		}
+		
+		/**
+		 * Retrieve the current value of the field.
+		 * @return The current value.
+		 */
+		public Object getCurrentValue() throws IllegalAccessException {
+			return field.get(target);
 		}
 		
 		/**
@@ -66,7 +88,7 @@ class InterceptorQueuedPackets extends TimeInterceptor implements Listener {
 		 */
 		public void apply() throws IllegalArgumentException {
 			try {
-				field.set(target, value);
+				field.set(target, newValue);
 			} catch (IllegalAccessException e) {
 				throw new RuntimeException("Unable to access field.", e);
 			}
@@ -85,8 +107,11 @@ class InterceptorQueuedPackets extends TimeInterceptor implements Listener {
 	private Field relativeTimeField;
 	
 	// The packet class
-	private Class<?> TIME_PACKET;
+	private Class<?> timePacket;
 	private Multimap<Player, FieldSetter> revertOperations = ArrayListMultimap.create();
+	
+	// Whether or not we have detected interfering plugins
+	private boolean detectedInterference;
 	
 	public InterceptorQueuedPackets(Plugin plugin) {
 		// Register this as a listener
@@ -101,12 +126,12 @@ class InterceptorQueuedPackets extends TimeInterceptor implements Listener {
 	private Object interceptPacket(Player player, Object packet) {
 		Class<?> clazz = packet.getClass();
 		
-		if (TIME_PACKET == null && clazz.getSimpleName().equals("Packet4UpdateTime")) {
-			TIME_PACKET = clazz;
+		if (timePacket == null && clazz.getSimpleName().equals("Packet4UpdateTime")) {
+			timePacket = clazz;
 		}
-		if (TIME_PACKET != null && TIME_PACKET.isAssignableFrom(clazz)) {
+		if (timePacket != null && timePacket.isAssignableFrom(clazz)) {
 			// Setup fields
-			for (Field field : TIME_PACKET.getDeclaredFields()) {
+			for (Field field : timePacket.getDeclaredFields()) {
 				if (Primitives.unwrap(field.getType()).equals(long.class)) {
 					if (fullTimeField == null)
 						fullTimeField = field;
@@ -199,7 +224,36 @@ class InterceptorQueuedPackets extends TimeInterceptor implements Listener {
 					e.printStackTrace();
 				}
 			}
-		});
+		}, 1L);
+		
+		// Wait a second and see if the lists remain the same
+		if (!detectedInterference) {
+			Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, new Runnable() {
+				@Override
+				public void run() {
+					// Check every field
+					for (FieldSetter setter : revertOperations.get(player)) {
+						try {
+							if (setter.hasChanged()) {
+								detectInterference(setter);
+								return;
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}, 20L);
+		}
+	}
+	
+	/**
+	 * Invoked when we have detected interference.
+	 */
+	protected void detectInterference(FieldSetter setter) throws IllegalAccessException {
+		plugin.getLogger().warning("Detected interfering plugin(s). Field value: " + setter.getCurrentValue());
+		plugin.getLogger().warning("Please install ProtocolLib.");
+		detectedInterference = true;
 	}
 	
 	@EventHandler
@@ -238,6 +292,11 @@ class InterceptorQueuedPackets extends TimeInterceptor implements Listener {
 		@Override
 		public void add(int index, Object element) {
 			super.add(index, interceptPacket(player, element));
+		}
+		
+		@Override
+		public Object set(int index, Object element) {
+			return super.set(index, interceptPacket(player, element));
 		}
 		
 		@Override

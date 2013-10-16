@@ -24,8 +24,6 @@ public class TimeSetter extends TimeInterceptor {
 			long relativeTime = world.getTime();
 			long changedTime = invokeListeners(player, totalTime, relativeTime);
 			
-			System.out.printf("Before: %s After: %s\n", totalTime, changedTime);
-			
 			if (relativeTime != changedTime) {
 				player.setPlayerTime(changedTime, false);
 			}
